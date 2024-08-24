@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/balumullamuri/Documents/C_Programming/Virtual_Machine-lc3-VM",
+      "program": "/Users/balumullamuri/Documents/C_Programming/Virtual_Machine-lc3-VM/build/Debug/outDebug"
+    }
+  ]
+}
