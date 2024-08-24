@@ -69,6 +69,15 @@ enum
     TRAP_HALT = 0x25   /* halt the program */
 };
 
+uint16_t sign_extend(uint16_t x, int bit_count)
+{
+    if ((x >> (bit_count - 1)) & 1)
+    {
+        x |= (0xFFFF << bit_count);
+    }
+    return x;
+}
+
 // Main loop
 
 int main(int argc, const char *argv[])
@@ -490,19 +499,3 @@ int main(int argc, const char *argv[])
     // Program shutdown code here (if needed)
     return 0;
 }
-
-uint16_t sign_extend(uint16_t x, int bit_count)
-{
-    if ((x >> (bit_count - 1)) & 1)
-    {
-        x |= (0xFFFF << bit_count);
-    }
-    return x;
-}
-
-// Step 5: Implement the ADD Instruction
-// The ADD instruction adds two values and stores the result in a register.
-// The LC-3 architecture supports two modes for the ADD instruction:
-
-// 1. Register Mode: The two values to be added are both stored in registers.
-// 2. Immediate Mode: One value is in a register, and the other is an immediate value encoded directly in the instruction.
