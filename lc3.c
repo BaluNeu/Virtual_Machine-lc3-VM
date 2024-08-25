@@ -2,9 +2,60 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+enum
+{
+    MR_KBSR = 0xFE00, /* keyboard status */
+    MR_KBDR = 0xFE02  /* keyboard data */
+};
+
+enum
+{
+    TRAP_GETC = 0x20,  /* get character from keyboard, not echoed onto the terminal */
+    TRAP_OUT = 0x21,   /* output a character */
+    TRAP_PUTS = 0x22,  /* output a word string */
+    TRAP_IN = 0x23,    /* get character from keyboard, echoed onto the terminal */
+    TRAP_PUTSP = 0x24, /* output a byte string */
+    TRAP_HALT = 0x25   /* halt the program */
+};
+
+
+
 // 1. Define memory
 #define MEMORY_MAX (1 << 16)
 uint16_t memory[MEMORY_MAX]; /* 65536 locations */
+
+int read_image(const char *image_path)
+{
+    FILE *file = fopen(image_path, "rb");
+    if (!file)
+    {
+        printf("Failed to load image: %s\n", image_path);
+        return 0;
+    }
+
+    // Read the origin address (first 16 bits)
+    uint16_t origin;
+    fread(&origin, sizeof(origin), 1, file);
+    origin = (origin << 8) | (origin >> 8); // Swap endianness if necessary
+
+    printf("Program origin: 0x%04X\n", origin);
+
+    // Read the rest of the file into memory
+    uint16_t *p = memory + origin;
+    size_t read = fread(p, sizeof(uint16_t), MEMORY_MAX - origin, file);
+
+    printf("Loaded %zu words into memory starting at 0x%04X\n", read, origin);
+
+    while (read-- > 0)
+    {
+        *p = (*p << 8) | (*p >> 8); // Swap endianness if necessary
+        printf("Memory[0x%04X] = 0x%04X\n", (uint16_t)(p - memory), *p);
+        ++p;
+    }
+
+    fclose(file);
+    return 1;
+}
 
 // 2. Define registers
 // The LC-3 has 10 registers: 8 general-purpose registers (R0-R7), a Program Counter (PC),
@@ -59,15 +110,15 @@ enum
     FL_NEG = 1 << 2, /* N */
 };
 
-enum
-{
-    TRAP_GETC = 0x20,  /* get character from keyboard, not echoed onto the terminal */
-    TRAP_OUT = 0x21,   /* output a character */
-    TRAP_PUTS = 0x22,  /* output a word string */
-    TRAP_IN = 0x23,    /* get character from keyboard, echoed onto the terminal */
-    TRAP_PUTSP = 0x24, /* output a byte string */
-    TRAP_HALT = 0x25   /* halt the program */
-};
+// enum
+// {
+//     TRAP_GETC = 0x20,  /* get character from keyboard, not echoed onto the terminal */
+//     TRAP_OUT = 0x21,   /* output a character */
+//     TRAP_PUTS = 0x22,  /* output a word string */
+//     TRAP_IN = 0x23,    /* get character from keyboard, echoed onto the terminal */
+//     TRAP_PUTSP = 0x24, /* output a byte string */
+//     TRAP_HALT = 0x25   /* halt the program */
+// };
 
 uint16_t sign_extend(uint16_t x, int bit_count)
 {
@@ -82,12 +133,27 @@ uint16_t sign_extend(uint16_t x, int bit_count)
 
 int main(int argc, const char *argv[])
 {
-    // Set the PC to the default starting position
-    enum
+    if (argc < 2)
     {
-        PC_START = 0x3000
-    };
-    reg[R_PC] = PC_START;
+        printf("Usage: %s [image-file1] ...\n", argv[0]);
+        return 2;
+    }
+
+    for (int j = 1; j < argc; ++j)
+    {
+        if (!read_image(argv[j]))
+        {
+            printf("Failed to load image: %s\n", argv[j]);
+            return 1;
+        }
+    }
+    // Set the PC to the default starting position
+    // enum
+    // {
+    //     PC_START = 0x3000
+    // };
+
+    reg[R_PC] = 0x3000;
 
     // Set the condition flags, starting with Z flag
     reg[R_COND] = FL_ZRO;
